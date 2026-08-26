@@ -1,0 +1,20 @@
+{
+  "name": "sistema-controle-estoque-backend",
+  "version": "1.0.0",
+  "description": "API para gerenciamento de produtos, fornecedores e associações",
+  "license": "ISC",
+  "author": "Bruno Souza",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "sqlite3": "^6.0.1"
+  },
+  "allowScripts": {
+    "sqlite3@6.0.1": true
+  }
+}

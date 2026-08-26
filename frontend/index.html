@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Estoque</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+    <h1>Sistema de Controle de Estoque</h1>
+    <p>Gerenciamento de produtos e fornecedores</p>
+</header>
+
+<main>
+    <h2>Painel de Controle</h2>
+    <section class="card">
+    <h3>Cadastrar Produto</h3>
+
+    <form id="formProduto">
+        <input type="text" id="nomeProduto" placeholder="Nome do produto" required>
+
+<input type="text" id="codigoBarras" placeholder="Código de barras" required>
+
+<input type="text" id="descricao" placeholder="Descrição do produto" required>
+
+<input type="number" id="quantidadeEstoque" placeholder="Quantidade em estoque" required>
+
+<input type="text" id="categoria" placeholder="Categoria" required>
+<select id="fornecedorProduto">
+    <option value="">Selecione um fornecedor</option>
+</select>
+<input type="date" id="dataValidade">
+
+<input type="text" id="imagemProduto" placeholder="URL da imagem">
+
+<button type="submit">Cadastrar Produto</button>
+    </form>
+</section>
+<section class="card">
+    <h3>Produtos Cadastrados</h3>
+    <div id="listaProdutos"></div>
+</section>
+<section class="card">
+    <h3>Cadastrar Fornecedor</h3>
+
+    <form id="formFornecedor">
+        <input type="text" id="nomeEmpresa" placeholder="Nome da empresa" required>
+
+        <input type="text" id="cnpj" placeholder="CNPJ" required>
+
+        <input type="text" id="endereco" placeholder="Endereço" required>
+
+        <input type="text" id="telefone" placeholder="Telefone" required>
+
+        <input type="email" id="email" placeholder="E-mail" required>
+
+        <input type="text" id="contatoPrincipal" placeholder="Contato principal" required>
+
+        <button type="submit">Cadastrar Fornecedor</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Fornecedores Cadastrados</h3>
+    <div id="listaFornecedores"></div>
+</section>
+<section class="card">
+  <h3>Associação Produto / Fornecedor</h3>
+
+  <form id="formAssociacao">
+    <select id="produtoAssociacao" required>
+      <option value="">Selecione um produto</option>
+    </select>
+
+    <select id="fornecedorAssociacao" required>
+      <option value="">Selecione um fornecedor</option>
+    </select>
+
+    <button type="submit">Associar</button>
+  </form>
+
+  <h3>Associações cadastradas</h3>
+  <div id="listaAssociacoes"></div>
+</section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
