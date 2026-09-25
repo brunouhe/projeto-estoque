@@ -1,7 +1,7 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-const caminhoBanco = path.join(__dirname, "estoque.db");
+const caminhoBanco = process.env.DB_PATH || path.join(__dirname, "estoque.db");
 
 const db = new sqlite3.Database(caminhoBanco, (erro) => {
     if (erro) {
@@ -41,6 +41,20 @@ db.run(`
         FOREIGN KEY (produtoId) REFERENCES produtos(id),
         FOREIGN KEY (fornecedorId) REFERENCES fornecedores(id),
         UNIQUE (produtoId, fornecedorId)
+    )
+`);
+db.run(`
+    CREATE TABLE IF NOT EXISTS entradas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        produtoId INTEGER NOT NULL,
+        fornecedorId INTEGER,
+        quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+        lote TEXT,
+        dataValidade TEXT,
+        notaFiscal TEXT,
+        criadaEm TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (produtoId) REFERENCES produtos(id),
+        FOREIGN KEY (fornecedorId) REFERENCES fornecedores(id)
     )
 `);
 

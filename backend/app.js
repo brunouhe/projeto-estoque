@@ -7,6 +7,73 @@ app.use(cors());
 
 app.use(express.json());
 
+// Recebimento de mercadorias: registra o lote e soma a quantidade ao produto.
+app.post("/entradas", (req, res) => {
+    const { produtoId, fornecedorId, quantidade, lote, dataValidade, notaFiscal } = req.body;
+    const id = Number(produtoId);
+    const qtd = Number(quantidade);
+    const fornecedor = fornecedorId == null || fornecedorId === "" ? null : Number(fornecedorId);
+    const validade = dataValidade || null;
+    if (!Number.isInteger(id) || id <= 0 || !Number.isSafeInteger(qtd) || qtd <= 0 ||
+        (fornecedor !== null && (!Number.isInteger(fornecedor) || fornecedor <= 0)) ||
+        (validade && (!/^\d{4}-\d{2}-\d{2}$/.test(validade) ||
+          !Number.isFinite(Date.parse(`${validade}T00:00:00Z`)) ||
+          new Date(`${validade}T00:00:00Z`).toISOString().slice(0, 10) !== validade))) {
+        return res.status(400).json({ mensagem: "Informe produtoId, quantidade positiva e uma validade válida (AAAA-MM-DD), se houver." });
+    }
+    db.get("SELECT id FROM produtos WHERE id = ?", [id], (erro, produto) => {
+        if (erro) return res.status(500).json({ mensagem: "Erro ao consultar produto." });
+        if (!produto) return res.status(404).json({ mensagem: "Produto não encontrado." });
+        const registrar = () => {
+            db.serialize(() => {
+                db.run("BEGIN IMMEDIATE TRANSACTION", erroInicio => {
+                    if (erroInicio) return res.status(500).json({ mensagem: "Erro ao iniciar entrada." });
+                    db.run("UPDATE produtos SET quantidadeEstoque = quantidadeEstoque + ? WHERE id = ?", [qtd, id], function (erroAtualizacao) {
+                        if (erroAtualizacao || !this.changes) {
+                            return db.run("ROLLBACK", () => res.status(500).json({ mensagem: "Erro ao atualizar estoque." }));
+                        }
+                        db.run(`INSERT INTO entradas (produtoId, fornecedorId, quantidade, lote, dataValidade, notaFiscal)
+                                VALUES (?, ?, ?, ?, ?, ?)`,
+                            [id, fornecedor, qtd, lote || null, validade, notaFiscal || null], function (erroEntrada) {
+                                if (erroEntrada) return db.run("ROLLBACK", () => res.status(500).json({ mensagem: "Erro ao registrar entrada." }));
+                                const entradaId = this.lastID;
+                                db.run("COMMIT", erroCommit => {
+                                    if (erroCommit) return res.status(500).json({ mensagem: "Erro ao concluir entrada." });
+                                    res.status(201).json({ mensagem: "Entrada registrada.", entrada: { id: entradaId, produtoId: id, fornecedorId: fornecedor, quantidade: qtd, lote: lote || null, dataValidade: validade, notaFiscal: notaFiscal || null } });
+                                });
+                            });
+                    });
+                });
+            });
+        };
+        if (fornecedor === null) return registrar();
+        db.get("SELECT id FROM fornecedores WHERE id = ?", [fornecedor], (erroFornecedor, encontrado) => {
+            if (erroFornecedor) return res.status(500).json({ mensagem: "Erro ao consultar fornecedor." });
+            if (!encontrado) return res.status(404).json({ mensagem: "Fornecedor não encontrado." });
+            registrar();
+        });
+    });
+});
+
+// Alertas no painel: mínimo e horizonte de validade configurados na chamada.
+app.get("/alertas", (req, res) => {
+    const minimo = req.query.minimo === undefined ? 5 : Number(req.query.minimo);
+    const dias = req.query.dias === undefined ? 30 : Number(req.query.dias);
+    if (!Number.isSafeInteger(minimo) || minimo < 0 || !Number.isSafeInteger(dias) || dias < 0 || dias > 365) {
+        return res.status(400).json({ mensagem: "Use minimo inteiro não negativo e dias entre 0 e 365." });
+    }
+    db.all("SELECT id AS produtoId, nomeProduto, quantidadeEstoque, ? AS minimo FROM produtos WHERE quantidadeEstoque <= ? ORDER BY quantidadeEstoque, nomeProduto", [minimo, minimo], (erro, estoqueBaixo) => {
+        if (erro) return res.status(500).json({ mensagem: "Erro ao consultar estoque." });
+        db.all(`SELECT e.id AS entradaId, e.produtoId, p.nomeProduto, e.lote, e.quantidade, e.dataValidade
+                FROM entradas e JOIN produtos p ON p.id = e.produtoId
+                WHERE e.dataValidade IS NOT NULL AND date(e.dataValidade) <= date('now', '+' || ? || ' days')
+                ORDER BY e.dataValidade`, [dias], (erroValidade, proximosVencimentos) => {
+            if (erroValidade) return res.status(500).json({ mensagem: "Erro ao consultar validades." });
+            res.json({ estoqueBaixo, proximosVencimentos, parametros: { minimo, dias } });
+        });
+    });
+});
+
 // Lista temporária de fornecedores
 const fornecedores = [];
 
