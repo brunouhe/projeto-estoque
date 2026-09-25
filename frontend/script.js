@@ -4,6 +4,51 @@ const produtoAssociacao = document.getElementById("produtoAssociacao");
 const fornecedorAssociacao = document.getElementById("fornecedorAssociacao");
 const listaAssociacoes = document.getElementById("listaAssociacoes");
 
+const entradaProduto = document.getElementById("entradaProduto");
+async function carregarAlertas() {
+  const painel = document.getElementById("listaAlertas");
+  try {
+    const minimo = document.getElementById("alertaMinimo").value;
+    const dias = document.getElementById("alertaDias").value;
+    const resposta = await fetch(`http://localhost:3000/alertas?minimo=${encodeURIComponent(minimo)}&dias=${encodeURIComponent(dias)}`);
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.mensagem);
+    painel.replaceChildren();
+    const avisos = [
+      ...dados.estoqueBaixo.map(p => `${p.nomeProduto}: ${p.quantidadeEstoque} unidades em estoque (limite ${p.minimo}).`),
+      ...dados.proximosVencimentos.map(e => `${e.nomeProduto}, lote ${e.lote || "não informado"}: ${e.quantidade} unidades com validade em ${e.dataValidade}.`)
+    ];
+    for (const aviso of avisos.length ? avisos : ["Nenhum alerta para os critérios informados."]) {
+      const paragrafo = document.createElement("p");
+      paragrafo.textContent = aviso;
+      painel.appendChild(paragrafo);
+    }
+  } catch (erro) { painel.textContent = `Não foi possível carregar os alertas: ${erro.message}`; }
+}
+document.getElementById("atualizarAlertas").addEventListener("click", carregarAlertas);
+document.getElementById("formEntrada").addEventListener("submit", async evento => {
+  evento.preventDefault();
+  const formulario = evento.currentTarget;
+  try {
+    const resposta = await fetch("http://localhost:3000/entradas", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        produtoId: Number(entradaProduto.value),
+        quantidade: Number(document.getElementById("entradaQuantidade").value),
+        lote: document.getElementById("entradaLote").value,
+        dataValidade: document.getElementById("entradaValidade").value || null,
+        notaFiscal: document.getElementById("entradaNota").value
+      })
+    });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.mensagem);
+    formulario.reset();
+    alert("Entrada registrada com sucesso.");
+    await carregarProdutos();
+    await carregarAlertas();
+  } catch (erro) { alert(`Não foi possível registrar a entrada: ${erro.message}`); }
+});
+
 let produtoEditandoId = null;
 document.querySelector("#formProduto button").textContent = "Cadastrar Produto";
 
@@ -121,7 +166,7 @@ if (produtoEditandoId) {
 });
 async function carregarProdutos() {
     try {
-        const resposta = await fetch("http://localhost:3000/produtos");
+const resposta = await fetch("http://localhost:3000/produtos");
         const produtos = await resposta.json();
         const respostaAssociacoes = await fetch("http://localhost:3000/associacoes");
 const associacoes = await respostaAssociacoes.json();
@@ -130,8 +175,14 @@ const respostaFornecedores = await fetch("http://localhost:3000/fornecedores");
 const fornecedores = await respostaFornecedores.json();
 produtoAssociacao.innerHTML =
   '<option value="">Selecione um produto</option>';
+entradaProduto.innerHTML = '<option value="">Selecione o produto</option>';
 
 produtos.forEach((produto) => {
+  // A mesma lista alimenta o formulário de recebimento.
+  const opcaoEntrada = document.createElement("option");
+  opcaoEntrada.value = produto.id;
+  opcaoEntrada.textContent = produto.nomeProduto;
+  entradaProduto.appendChild(opcaoEntrada);
   const opcao = document.createElement("option");
   opcao.value = produto.id;
   opcao.textContent = produto.nomeProduto;
@@ -297,6 +348,7 @@ botaoExcluir.addEventListener("click", async () => {
 }
 
 carregarProdutos();
+carregarAlertas();
 
 
 const formFornecedor = document.getElementById("formFornecedor");

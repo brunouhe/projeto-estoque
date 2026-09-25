@@ -43,6 +43,27 @@
     <div id="listaProdutos"></div>
 </section>
 <section class="card">
+    <h3>Receber mercadoria</h3>
+    <form id="formEntrada">
+        <select id="entradaProduto" required><option value="">Selecione o produto</option></select>
+        <input id="entradaQuantidade" type="number" min="1" step="1" placeholder="Quantidade recebida" required>
+        <input id="entradaLote" type="text" placeholder="Lote (opcional)">
+        <label for="entradaValidade">Validade do lote (se houver)</label>
+        <input id="entradaValidade" type="date">
+        <input id="entradaNota" type="text" placeholder="Número da nota fiscal (opcional)">
+        <button type="submit">Registrar entrada</button>
+    </form>
+</section>
+<section class="card">
+    <h3>Alertas de estoque e validade</h3>
+    <label for="alertaMinimo">Quantidade mínima para aviso</label>
+    <input id="alertaMinimo" type="number" min="0" step="1" value="5">
+    <label for="alertaDias">Avisar vencimentos nos próximos dias</label>
+    <input id="alertaDias" type="number" min="0" max="365" step="1" value="30">
+    <button id="atualizarAlertas" type="button">Atualizar alertas</button>
+    <div id="listaAlertas" aria-live="polite"></div>
+</section>
+<section class="card">
     <h3>Cadastrar Fornecedor</h3>
 
     <form id="formFornecedor">
